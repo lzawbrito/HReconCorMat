@@ -45,12 +45,13 @@ function iterativePowerS(H, spin_mag::Float64, curr_op, start_index::Integer, np
                 
             H[lr_start:(lr_start+nSpin-1),   idx_start:(idx_start+nSpin-1)] = op_h # last column (no J!)
             
+            # now add a local matrix representing this same operator to H_op_vec
             H_op_here = zeros(ComplexF64, 3*nSpin, 3*nSpin)
             
             H_op_here[1:nSpin,             1:nSpin            ] = Id # top left
             H_op_here[(2*nSpin+1):3*nSpin, (2*nSpin+1):3*nSpin] = Id # bottom right
             
-            H_op_here[(  nSpin+1):2*nSpin,   1:nSpin          ] = J_tensor[dim]*op_h # first coulumn
+            H_op_here[(  nSpin+1):2*nSpin,   1:nSpin          ] = op_h # first coulumn
             H_op_here[(2*nSpin+1):3*nSpin,   (nSpin+1):2*nSpin] = op_h # last row
             push!(H_op_vec,H_op_here) # push back into H_op_vec
                 
@@ -140,6 +141,35 @@ function H_SU2(s::Float64, J_arr)
     for p = 1:max_p # add terms associated with each power, (S*S)^p
         J_tensor = makeIsotropicJ(p, J_arr[p]) # make isotropic J_tensor with specified magnitude
         iterativePowerS(H_n, s, Id, start_index, p, 1, J_tensor, H_op_vec) # iterative construction of (S*S)^p
+        start_index = start_index + n*(3^p) # keep track of the H index for each (S*S)^p group!
+    end
+    return H_n, H_op_vec
+end
+
+# construct the Heisenberg chain MPO
+function H_SU2_Jtensor(s::Float64, J_tensors)
+    # J_arr is an array of prefactors -> H = \sum_p J_p (S*S)^p
+             
+    Sx,Sy,Sz,Sp,Sm,O,Id = spinOps(spinmag)
+    n = Int(2*s + 1) # dimension of spin space
+    max_p = n-1 # max allowed power of (S*S)^p terms
+    nterms = n*2 # keep track of Id and O terms in MPO
+    for p = 1:max_p # find size over all allowed powers
+        nterms = nterms + n*(3^p)
+    end
+    H_n = zeros(ComplexF64, nterms, nterms) # initialize
+                     
+    # set first column and last row identities
+    H_n[1:n,1:n] = Id
+    H_n[(nterms-n+1):nterms,(nterms-n+1):nterms] = Id
+                        
+    # we start in H just after the first [n x n] row block (or column block, if on last row)
+    start_index = 1 + n;
+    
+    H_op_vec = [] # for keeping tack of each "local" H_operator matrix, will need to turn into an MPO afterwards!
+    
+    for p = 1:max_p # add terms associated with each power, (S*S)^p
+        iterativePowerS(H_n, s, Id, start_index, p, 1, J_tensors[p], H_op_vec) # iterative construction of (S*S)^p
         start_index = start_index + n*(3^p) # keep track of the H index for each (S*S)^p group!
     end
     return H_n, H_op_vec
