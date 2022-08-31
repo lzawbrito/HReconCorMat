@@ -16,15 +16,14 @@ function makePsi0(s::Float64,Ns::Integer)
     return psi
 end
 
-# iteratively constructs the MPO for a given "power" of spin terms, e.g. power 3 -> \sum_{ijk} S_i S_j S_k
-function iterativePowerS(H, spin_mag::Float64, curr_op, start_index::Integer, npowers::Integer, curr_power::Integer, J_tensor, H_op_vec)
+# constructs the MPO for a given "power" of spin terms, e.g. power 3 -> \sum_{ijk} S_i S_j S_k
+# NOT FINISHED
+function construct_H_genericJ(H, H_op_vec, spin_mag::Float64, start_index::Integer, J_tensor)
 
     # H:           MPO reference (acts in place)
+    # H_op_vec:    List of individual operators (acts in place)
     # spin_mag:    Spin magnitude
-    # curr_op:     keeps track of the preceding terms in the spin product, e.g. for S_k (curr_power = 3) curr_op would be S_i S_j.
-    # start_index: keeps track of where we are in the larger MPO (which is a direct product of different "npowers" calls to this iterative function)
-    # npowers:     the number of terms in the spin sum, e.g. 3 in the above example
-    # curr_power:  where we are in the nested sum, e.g. S_i -> 1, S_j -> 2, and S_k -> 3 in above example
+    # start_index: keeps track of where we are in the larger H MPO
     # J_tensor:    a nested list of depth (npowers - curr_power + 1), has the collection of J_terms we want for our model
     
     Sx,Sy,Sz,Sp,Sm,O,Id = spinOps(spinmag)
@@ -32,131 +31,123 @@ function iterativePowerS(H, spin_mag::Float64, curr_op, start_index::Integer, np
     nSpin = Int(2*spin_mag + 1) # dimension of spin space
     nterms = size(H,1) # total size of the MPO's onsite H
     
-    if (curr_power == npowers) # if at bottom of iterative tree
-                
-        for dim = 1:3 # loop over (x,y,z)
-            
-            idx_start = start_index + nSpin*(dim-1) # starting point along first column / last row
+    op_idx_arr = [[1],[2],[3]] # p=1
+    # op_idx_arr =  [[1,1],[1,2],[1,3],[2,2],[2,3],[3,3]] # p=2
+    # op_idx_arr =  [[1,1,1],[1,1,2],[1,1,3],[1,2,2],[1,2,3],[1,3,3],[2,2,2],[2,2,3],[2,3,3],[3,3,3]] # p=3
+                   
+    H_op_idx = 1
+    for op_l_idx = 1:3 # loop over operators acting on left bond {x,y,z}
+        for op_r_idx = 1:3 # loop over operators acting on right bond {x,y,z}
+
             lr_start = nterms - nSpin + 1 # index location of last row
 
-            op_h = curr_op*Sop_arr[dim]; # generate final operator
+            op_l_list = genOp(Sop_arr, op_idx_arr[op_l_idx])
+            n_sym_l_ops = length(op_l_list)
+            op_r_list = genOp(Sop_arr, op_idx_arr[op_r_idx])
+            n_sym_r_ops = length(op_r_list)
+
+            # make local operator
+            size_H_op = 2 + (n_sym_l_ops)*(n_sym_r_ops)
+            H_op_here = zeros(ComplexF64, size_H_op*nSpin, size_H_op*nSpin)
+            H_op_here[             1:nSpin                           ,             1:nSpin            ] = Id # top left
+            H_op_here[((size_H_op-1)*nSpin+1):size_H_op*nSpin, ((size_H_op-1)*nSpin+1):size_H_op*nSpin] = Id # bottom right
+            op_idx_start = nSpin+1
             
-            H[idx_start:(idx_start+nSpin-1), 1:nSpin                      ]  = J_tensor[dim]*op_h # first column (has J!)
-                
-            H[lr_start:(lr_start+nSpin-1),   idx_start:(idx_start+nSpin-1)] = op_h # last column (no J!)
-            
-            # now add a local matrix representing this same operator to H_op_vec
-            H_op_here = zeros(ComplexF64, 3*nSpin, 3*nSpin)
-            
-            H_op_here[1:nSpin,             1:nSpin            ] = Id # top left
-            H_op_here[(2*nSpin+1):3*nSpin, (2*nSpin+1):3*nSpin] = Id # bottom right
-            
-            H_op_here[(  nSpin+1):2*nSpin,   1:nSpin          ] = op_h # first coulumn
-            H_op_here[(2*nSpin+1):3*nSpin,   (nSpin+1):2*nSpin] = op_h # last row
-            push!(H_op_vec,H_op_here) # push back into H_op_vec
-                
-        end
-    else # otherwise, keep iterating
-        for dim = 1:3 # loop over (x,y,z)
-            op_h = curr_op*Sop_arr[dim] # add term to operator product
-            stride_idx = 3^(npowers-curr_power) # figure out how wide the next block will be
-            # iterate!
-            iterativePowerS(H, spin_mag, op_h, start_index + nSpin*stride_idx*(dim-1), npowers, curr_power+1, J_tensor[dim], H_op_vec) 
+            for sym_l_idx = 1:n_sym_l_ops
+                for sym_r_idx = 1:n_sym_r_ops
+                    
+                    op_l = op_l_list[sym_l_idx]
+                    op_r = op_r_list[sym_r_idx]
+                    
+                    # populate the Hamiltonian
+                    idx_start = start_index + nSpin*(H_op_idx) # starting point along first column / last row
+                    H[idx_start:(idx_start+nSpin-1), 1:nSpin                      ]  = J_tensor[op_l_idx,op_r_idx]*op_l # first column (has J!)
+                    H[lr_start:(lr_start+nSpin-1),   idx_start:(idx_start+nSpin-1)] = op_r # last column (no J!)
+                    H_op_idx += 1
+
+                    # and populate the operator MPO
+                    H_op_here[op_idx_start:(op_idx_start+nSpin-1)    ,                  1:nSpin             ] = op_l # first coulumn
+                    H_op_here[((size_H_op-1)*nSpin+1):size_H_op*nSpin,   op_idx_start:(op_idx_start+nSpin-1)] = op_r # last row
+                    op_idx_start += nSpin
+                end
+            end
+        push!(H_op_vec,H_op_here) # push back into H_op_vec
         end
     end
         
 end
 
-# makes a J_tensor of specific power with fixed values J
-function makeIsotropicJ(power::Integer,J::Float64)
+# make all symmetry related operators for a given set of spin axes
+function genOp(Sop_arr, op_idxs)
+    # Sop_arr:    Array of the three spin operators, S_x, S_y, S_z
+    # op_idx:     Array of the given spin axes
+    N_terms = length(op_idxs)
     
-    J_here = Vector()
-    J_next = Vector()
+    # TODO go over all unique permutations of op_idxs
     
-    for depth = 1:power
-        if (depth == 1) # lowest level, just make a 3x1 array, [J, J, J]
-            for dim = 1:3
-                 push!(J_here,J)
-            end
-        else # otherwise, make nested lists
-            for dim = 1:3
-                push!(J_next,J_here)
-            end
-            J_here = J_next
-            J_next = Vector()
-        end
-    end
-    
-    return J_here
+    # return an array of spin operators correpsonding to each one
+    #return op_list 
     
 end
 
-# makes a J_tensor of specific power with random values between [-J,J]
-function makeRandomJ(power::Integer,J::Float64)
+# constructs the MPO of a SU2 symmetry terms (e.g. one J per power)
+function construct_H_SU2J(H, H_op_vec, spin_mag::Float64, start_index::Integer, J_array)
+
+    # H:           MPO reference (acts in place)
+    # H_op_vec:    List of individual operators (acts in place)
+    # spin_mag:    Spin magnitude
+    # start_index: keeps track of where we are in the larger H MPO (should usually be set to nSpin+1)
+    # J_array:     array of length p, giving the couplings J_p
     
-    J_here = Vector()
-    J_next = Vector()
+    Sx,Sy,Sz,Sp,Sm,O,Id = spinOps(spinmag)
+    Sop_arr = [Sx,Sy,Sz] # spin operators
+    nSpin = Int(2*spin_mag + 1) # dimension of spin space
+    max_p = nSpin - 1 # maximum allowed power of (S S)^p term
+    nterms = size(H,1) # total size of the MPO's onsite H
+
+    # size of each unique operator
+    size_H_op = 2 + (3*max_p) # 3 terms per power, S_x^p, S_y^p, S_z^p
     
-    for depth = 1:power
-        if (depth == 1) # lowest level, just make a 3x1 array, [J, J, J]
-            for dim = 1:3
-                 mc = 2.0*(rand(1)[1]-0.5) # randomly distributed between [-1,1]
-                 push!(J_here,J*mc)
-            end
-        else # otherwise, make nested lists
-            for dim = 1:3
-                push!(J_next,J_here)
-            end
-            J_here = J_next
-            J_next = Vector()
+    lr_start = nterms - nSpin + 1 # index location of last row
+    H_op_idx = 0 # keep track of which element of the Hamiltonian MPO we are on
+
+    for p = 1:max_p # powers
+        
+        # each power yields a unique operator
+        H_op_here = zeros(ComplexF64, size_H_op*nSpin, size_H_op*nSpin)
+        H_op_here[             1:nSpin                           ,             1:nSpin            ] = Id # top left
+        H_op_here[((size_H_op-1)*nSpin+1):size_H_op*nSpin, ((size_H_op-1)*nSpin+1):size_H_op*nSpin] = Id # bottom right
+        op_idx_start = nSpin+1
+        
+        for dim = 1:3 # spin axes
+
+            op_l = Sop_arr[dim]^p
+            op_r = Sop_arr[dim]^p
+
+            # populate the Hamiltonian
+            idx_start = start_index + nSpin*(H_op_idx) # starting point along first column / last row
+            H[idx_start:(idx_start+nSpin-1), 1:nSpin                      ]  = J_array[p]*op_l # first column (has J!)
+            H[lr_start:(lr_start+nSpin-1),   idx_start:(idx_start+nSpin-1)] = op_r # last column (no J!)
+            H_op_idx += 1
+
+            # and populate the operator MPO
+            H_op_here[op_idx_start:(op_idx_start+nSpin-1)    ,                  1:nSpin             ] = op_l # first coulumn
+            H_op_here[((size_H_op-1)*nSpin+1):size_H_op*nSpin,   op_idx_start:(op_idx_start+nSpin-1)] = op_r # last row
+            op_idx_start += nSpin
         end
+        push!(H_op_vec,H_op_here) # push back into H_op_vec
     end
-    
-    return J_here
-    
 end
 
-# construct the Heisenberg chain MPO
+# construct the Hamiltonian MPO and operators for SU2 symmetric problem
 function H_SU2(s::Float64, J_arr)
     # J_arr is an array of prefactors -> H = \sum_p J_p (S*S)^p
              
     Sx,Sy,Sz,Sp,Sm,O,Id = spinOps(spinmag)
     n = Int(2*s + 1) # dimension of spin space
     max_p = n-1 # max allowed power of (S*S)^p terms
-    nterms = n*2 # keep track of Id and O terms in MPO
-    for p = 1:max_p # find size over all allowed powers
-        nterms = nterms + n*(3^p)
-    end
-    H_n = zeros(ComplexF64, nterms, nterms) # initialize
-                     
-    # set first column and last row identities
-    H_n[1:n,1:n] = Id
-    H_n[(nterms-n+1):nterms,(nterms-n+1):nterms] = Id
-                        
-    # we start in H just after the first [n x n] row block (or column block, if on last row)
-    start_index = 1 + n;
-    
-    H_op_vec = [] # for keeping tack of each "local" H_operator matrix, will need to turn into an MPO afterwards!
-    
-    for p = 1:max_p # add terms associated with each power, (S*S)^p
-        J_tensor = makeIsotropicJ(p, J_arr[p]) # make isotropic J_tensor with specified magnitude
-        iterativePowerS(H_n, s, Id, start_index, p, 1, J_tensor, H_op_vec) # iterative construction of (S*S)^p
-        start_index = start_index + n*(3^p) # keep track of the H index for each (S*S)^p group!
-    end
-    return H_n, H_op_vec
-end
+    nterms = n*(2 + 3*max_p) # the 2 keeps track of Id and O terms in MPO
 
-# construct the Heisenberg chain MPO
-function H_SU2_Jtensor(s::Float64, J_tensors)
-    # J_arr is an array of prefactors -> H = \sum_p J_p (S*S)^p
-             
-    Sx,Sy,Sz,Sp,Sm,O,Id = spinOps(spinmag)
-    n = Int(2*s + 1) # dimension of spin space
-    max_p = n-1 # max allowed power of (S*S)^p terms
-    nterms = n*2 # keep track of Id and O terms in MPO
-    for p = 1:max_p # find size over all allowed powers
-        nterms = nterms + n*(3^p)
-    end
     H_n = zeros(ComplexF64, nterms, nterms) # initialize
                      
     # set first column and last row identities
@@ -164,13 +155,11 @@ function H_SU2_Jtensor(s::Float64, J_tensors)
     H_n[(nterms-n+1):nterms,(nterms-n+1):nterms] = Id
                         
     # we start in H just after the first [n x n] row block (or column block, if on last row)
-    start_index = 1 + n;
+    start_index = n+1;
     
     H_op_vec = [] # for keeping tack of each "local" H_operator matrix, will need to turn into an MPO afterwards!
     
-    for p = 1:max_p # add terms associated with each power, (S*S)^p
-        iterativePowerS(H_n, s, Id, start_index, p, 1, J_tensors[p], H_op_vec) # iterative construction of (S*S)^p
-        start_index = start_index + n*(3^p) # keep track of the H index for each (S*S)^p group!
-    end
+    construct_H_SU2J(H_n, H_op_vec, s, start_index, J_arr) # iterative construction of (S*S)^p
     return H_n, H_op_vec
+    
 end
