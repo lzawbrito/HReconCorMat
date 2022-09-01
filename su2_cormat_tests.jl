@@ -9,13 +9,16 @@
 #       mB = B
 #
 
+#using MKL # comment out for non-intel machines, will use openBLAS by default
 using Printf, FileIO
 include("cormat_tools.jl")
 
 # setup system with isotropic J
-spinmag = 1.5;
-Ns = 10 # number of sites
+spinmag = 1.0;
+nSpins = Int(spinmag*2 + 1)
+Ns = 20 # number of sites
 nruns = 10 # number of runs (random samples of J_arr)
+fname = "dat_spin1_sweep_run.jld2"
 
 nSpin = Int64(spinmag*2 + 1) # dimension of spin matrices
 max_p = nSpin-1 # maximum unique power of (S_i*S_j)^p terms
@@ -32,9 +35,9 @@ for run_idx = 1:nruns
     #drop_idx = findmin(J_arr)[2]
 
     # generate J_arr so that two value are > 0.7, and one is < 0.2
-    max_idx = rand(1:3,1)[1]
-    min_idx = rand( setdiff(1:3,max_idx),1)[1]
-    J_arr = zeros(3) .+ 0.7 .+ 0.2*rand(1) # Middle value
+    max_idx = rand(1:nSpins,1)[1]
+    min_idx = rand( setdiff(1:nSpins,max_idx),1)[1]
+    J_arr = zeros(3) .+ 0.7 .+ 0.2*rand(1) # Middle value for all other terms
     J_arr[max_idx] = 1.0 # max value
     J_arr[min_idx] = 0.2*rand(1)[1] # minimum value
     min_J = J_arr[min_idx]
@@ -70,7 +73,7 @@ for run_idx = 1:nruns
 
 end
 
-save("SU2_sweep_run.jld2", "dataset", dataset)
+save(fname, "dataset", dataset)
 
 #=
 tar_run = dataset[1]

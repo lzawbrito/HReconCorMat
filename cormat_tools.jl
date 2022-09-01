@@ -67,8 +67,9 @@ end
 
 function dmrg_anneal(psi, H_mpo)
     # DMRG sweeps, with refinement 
-    nsweeps_m10 = 6
-    nsweeps_m40 = 3
+    nsweeps_m10 = 40
+    nsweeps_m40 = 20
+    nsweeps_m80 = 10
 
     for i in 1:nsweeps_m10
         dmrg(psi, H_mpo, maxm = 10, cutoff = 1E-4)
@@ -78,11 +79,12 @@ function dmrg_anneal(psi, H_mpo)
         dmrg(psi, H_mpo, maxm = 40, cutoff = 1E-8)
     end
 
-    #for i in 1:nsweeps_m80
-    #    @time dmrg(psi, H_mpo, maxm = 80, cutoff = 1E-15)
-    #end
+    for i in 1:nsweeps_m80
+        dmrg(psi, H_mpo, maxm = 80, cutoff = 1E-15)
+    end
     
     variance = expect(psi,H_mpo,H_mpo)- (expect(psi, H_mpo))^2
+    display(real(variance))
 
     return psi, variance
 
