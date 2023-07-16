@@ -32,7 +32,7 @@ function bias(v, v_1, v_2)
 	return proj1 / (proj1 + proj2), proj2 / (proj1 + proj2)
 end
 
-l = 5
+l = 21
 
 # Check that H and S_tot commute. Explicitly constructing the operators is
 # quite costly so only run this for lower values of l
@@ -94,6 +94,6 @@ df = DataFrame(eval1=eval1,
 			   bias1=bias1, 
 			   bias2=bias2)
 
-fn = data_dir * "hs_cons_quantity_vs_h.n=$l.csv"
+fn = data_dir * "hs_cons_quantity_vs_h_n=$l.csv"
 CSV.write(fn, df)
 println("Written to $fn.")

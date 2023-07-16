@@ -69,13 +69,13 @@ J_list_array = J_list_array ./ J_list_array[:,1]
 
 J_labels = [L"$1/R^2$",L"$1/R^3$",L"$e^{-R/2}$",L"$e^{-(R/8)^2}$"]
 
-writedlm("./StephenData/tb_j_labels.txt", J_labels)
+writedlm("./data/stephen_data/tb_j_labels.txt", J_labels)
 
 fig = Figure(resolution=(600,800))
 ax1 = Axis(fig[1,1], yscale=log10)
 ax2 = Axis(fig[2,1], yscale=log10)
 
-writedlm("./StephenData/tb_j.txt", J_list_array)
+writedlm("./data/stephen_data/tb_j.txt", J_list_array)
 
 lambda_means = zeros(size(J_list_array)[1], size(J_list_array)[2])
 lambda_stds = zeros(size(lambda_means)...)
@@ -119,8 +119,8 @@ for idx = 1:size(J_list_array,1)
 
 end
 
-writedlm("./StephenData/tb_lambda_means.txt", lambda_means)
-writedlm("./StephenData/tb_lambda_stds.txt", lambda_stds)
+writedlm("./data/stephen_data/tb_lambda_means.txt", lambda_means)
+writedlm("./data/stephen_data/tb_lambda_stds.txt", lambda_stds)
 
 
 
