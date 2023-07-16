@@ -9,3 +9,4 @@ old-scripts/
 paper-figures/drafts/
 paper-figures/latex-labels/
 paper-figures/scripts/__pycache__/
+.DS_Store
