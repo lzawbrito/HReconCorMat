@@ -1,0 +1,11 @@
+notes/
+hs/
+matplotlibrc
+hrecon/
+data/
+.vscode/
+fig/*
+old-scripts/
+paper-figures/drafts/
+paper-figures/latex-labels/
+paper-figures/scripts/__pycache__/
