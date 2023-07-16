@@ -143,5 +143,5 @@ writedlm("./data/stephen_data/tb_lambda_stds.txt", lambda_stds)
 #CairoMakie.activate!()
 #save("cormat_lambdas.pdf",fig)
 #save("cormat_Qs.pdf",fig)
-save("cormat_Jsq_fit.pdf",fig)
+save("./fig/cormat_Jsq_fit.pdf",fig)
 
