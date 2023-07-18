@@ -194,19 +194,6 @@ function basis2spatial_idx_oc(i::Int, n::Int)::Vector{Int}
 end
 
 """
-Calculates the `i`-th operator in the `n`-site ring operator basis. 
-"""
-function op_in_basis(basis_idx, n)
-	idx = basis2spatial_idx(basis_idx, n)
-	r = idx[2] - idx[1]
-	sum = dot_op(1, 1 + r, n)
-	for i in 2:n
-		sum += dot_op(wrap_index(n, i), wrap_index(n, i + r), n)
-	end
-	return (1 / n) * sum
-end
-
-"""
 Takes the chain average of the given function `f(i)`: (1/n) sum_i f(i), where 
 `i` is the site index. 
 """
@@ -216,6 +203,21 @@ function chain_avg(f, n)
 		sum += f(wrap_index(n, i))
 	end 
 	return (1 / n) * sum
+end
+
+"""
+Calculates the `i`-th operator in the `n`-site ring operator basis. `chain_avg`
+specifies whether to translationally average.
+"""
+function op_in_basis(basis_idx, n; avg_basis=true)
+	idx = basis2spatial_idx(basis_idx, n)
+	r = idx[2] - idx[1]
+
+	if !avg_basis
+		return dot_op(wrap_index(n, 1), wrap_index(n, 1 + r), n)
+	end 
+
+	return chain_avg((x) -> dot_op(wrap_index(n, x), wrap_index(n, x + r), n), n)
 end
 
 # function conn_corr2(i::Int, j::Int, n::Int, state::Vector{ComplexF64}; digits=14)::Float64
@@ -243,9 +245,9 @@ end
 Connected correlator <O_i * O_j> - <O_i><O_j> using O_i from spin ring operator 
 basis.
 """
-function conn_corr(i::Int, j::Int, n::Int, state::Vector{ComplexF64})::Float64
-	oi = op_in_basis(i, n)
-	oj = op_in_basis(j, n)
+function conn_corr(i::Int, j::Int, n::Int, state::Vector{ComplexF64}; avg_basis::Bool=true)::Float64
+	oi = op_in_basis(i, n, avg_basis=avg_basis)
+	oj = op_in_basis(j, n, avg_basis=avg_basis)
 	bq = expect(oi * oj, state)
 	bq = bq + expect(oj * oi, state)
 	sq = expect(oi, state) * expect(oj, state)
@@ -340,9 +342,9 @@ end
 """
 Constructs a correlation matrix with the S=1/2 spin-ring basis. 
 """
-function make_corr_mat(n::Int, state::Vector{ComplexF64})::SparseOrFull{Float64, Int64}
+function make_corr_mat(n::Int, state::Vector{ComplexF64}; avg_basis::Bool=true)::SparseOrFull{Float64, Int64}
 	dim = op_basis_dim(n)
-	return [conn_corr(i, j, n, state) for i in 1:dim, j in 1:dim]
+	return [conn_corr(i, j, n, state, avg_basis=avg_basis) for i in 1:dim, j in 1:dim]
 end
 
 # function make_corr_mat(n::Int, state::Vector{ComplexF64}; digits=14)::SparseOrFull{Float64, Int64}
@@ -376,16 +378,25 @@ Generates the wavefunction and correlation matrix corresponding to an `n` site
 Haldane-Shastry model and saves the results to a `Dict` in the given directory. 
 Can take up to a few hours for n ~ 20.
 """
-function make_wf_cm(n::Int, dir)
+function make_wf_cm(n::Int, dir; avg_basis::Bool=true)
 	m = trunc(Int, n/2) # half filling
 	print("\nMaking wavefunction... ")
 	k = normalize(wf(m, n))
 	print("Done.")
-	print("\nMaking correlation matrix... ")
-	cm = make_corr_mat(n, k)
+
+	if avg_basis 
+		print("\nMaking correlation matrix... ")
+	else 
+		print("\nMaking correlation matrix without chain averaging... ")
+	end
+
+	cm = make_corr_mat(n, k, avg_basis=avg_basis)
 	print("Done.\n")
-	save("$dir/cm_wf_n=$n.jld", "wf", k, "cm", cm)
-	println("Saved to $dir/cm_wf_n=$n.jld")
+
+	fname = avg_basis ? "cm_wf_n=$n.jld" : "cm_wf_n=$(n)_no_chain_avg.jld"
+
+	save(dir * "/" * fname, "wf", k, "cm", cm)
+	println("Saved to $dir/$fname")
 	return Dict("wf" => k, "cm" => cm)
 end
 
