@@ -1,3 +1,5 @@
+# Author: Stephen Carr
+
 using LinearAlgebra, Statistics
 #using GLMakie, CairoMakie, LaTeXStrings
 using CairoMakie, LaTeXStrings

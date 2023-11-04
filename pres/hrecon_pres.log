@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.4.27)  15 JUL 2023 18:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.4.27)  14 SEP 2023 18:31
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -1095,14 +1095,14 @@ Package rerunfilecheck Info: File `hrecon_pres.out' has not changed.
  ) 
 Here is how much of TeX's memory you used:
  32841 strings out of 477476
- 711171 string characters out of 5824244
+ 711181 string characters out of 5824244
  1875388 words of memory out of 5000000
  52333 multiletter control sequences out of 15000+600000
  529815 words of font info for 97 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
  101i,19n,104p,426b,891s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2023basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-Output written on hrecon_pres.pdf (59 pages, 995055 bytes).
+Output written on hrecon_pres.pdf (59 pages, 995241 bytes).
 PDF statistics:
  1684 PDF objects out of 1728 (max. 8388607)
  1479 compressed objects within 15 object streams

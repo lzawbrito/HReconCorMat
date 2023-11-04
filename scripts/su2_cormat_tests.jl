@@ -1,3 +1,5 @@
+# Author: Stephen Carr
+
 # USING DMRJulia v0.8.7
 # (most recent version tries to call BLAS stev! for complex psi... doesn't work!)
 # NEED TO EDIT (to make complex work)

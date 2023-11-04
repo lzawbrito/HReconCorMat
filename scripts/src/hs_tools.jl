@@ -176,6 +176,7 @@ function biquad(i::Int, j::Int, k::Int, l::Int, n::Int)::SparseOrFull{ComplexF64
 end
 
 
+
 """
 Basis of unique (subject to separation and ring geometry) pairs of correlators. 
 This is a ⌊N/2⌋ - 1 dimensional space: we fix i = 1 then run from j = 2 to 
@@ -360,18 +361,29 @@ function make_corr_mat_oc(n, state)
 	return [conn_corr_oc(i, j, n, state) for i in 1:dim, j in 1:dim]
 end
 	
+# """
+# Checks if vector `a` is in the given subspace `subspace` by returning the 
+# magnitude of the projection of `a` on to that subspace and a Boolean for whether 
+# the projection is close to one (according to `atol`).
+# """
+# function in_subspace(subspace::Matrix, a::Vector, atol=1e-4)
+# 	proj = 0 
+# 	for i in 1:size(subspace, 2)
+# 		proj += dot(normalize(a), normalize(subspace[:, i]))^2
+# 	end
+# 	return proj, isapprox(proj, 1.0, atol=atol)
+# end
 """
 Checks if vector `a` is in the given subspace `subspace` by returning the 
 magnitude of the projection of `a` on to that subspace and a Boolean for whether 
 the projection is close to one (according to `atol`).
 """
 function in_subspace(subspace::Matrix, a::Vector, atol=1e-4)
-	proj = 0 
-	for i in 1:size(subspace, 2)
-		proj += dot(normalize(a), normalize(subspace[:, i]))^2
-	end
-	return proj, isapprox(proj, 1.0, atol=atol)
+    proj = subspace * (subspace' * subspace)^(-1) * subspace' * normalize(a)
+	return norm(proj), isapprox(norm(proj), 1.0, atol=atol)
 end
+
+
 
 """
 Generates the wavefunction and correlation matrix corresponding to an `n` site 

@@ -1,3 +1,5 @@
+# Author: Stephen Carr
+
 using FileIO
 using Plots
 
